@@ -226,6 +226,16 @@ export const NETWORKS = {
     blockExplorer: "https://moonbeam-explorer.netlify.app/",
     rpcUrl: "http://127.0.0.1:9933",
   },
+  bscTestnet: {
+    name: "bscTestnet",
+    color: "#53CBC9",
+    chainId: 97,
+    blockExplorer: "https://testnet.bscscan.com/",
+    //rpcUrl: "https://endpoints.omniatech.io/v1/bsc/testnet/0141e29d4dc94f569cbf154747783112",
+    //rpcUrl: "/v1/bsc/testnet/0141e29d4dc94f569cbf154747783112",
+    //rpcUrl: "/v1/bsc/testnet/0141e29d4dc94f569cbf154747783112",
+    rpcUrl: '/',
+  },
 };
 
 export const NETWORK = chainId => {

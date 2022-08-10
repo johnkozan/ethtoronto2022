@@ -75,7 +75,6 @@ export default function Account({
           provider={localProvider}
           signer={userSigner}
           ensProvider={mainnetProvider}
-          price={price}
           color={currentTheme === "light" ? "#1890ff" : "#2caad9"}
           size={22}
           padding={"0px"}

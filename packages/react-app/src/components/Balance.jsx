@@ -30,7 +30,7 @@ const { utils } = require("ethers");
 **/
 
 export default function Balance(props) {
-  const [dollarMode, setDollarMode] = useState(true);
+  const [dollarMode, setDollarMode] = useState(false);
 
   const balance = useBalance(props.provider, props.address);
   let floatBalance = parseFloat("0.00");

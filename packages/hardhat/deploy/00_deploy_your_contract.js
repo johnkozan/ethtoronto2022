@@ -4,79 +4,44 @@ const { ethers } = require("hardhat");
 
 const localChainId = "31337";
 
-// const sleep = (ms) =>
-//   new Promise((r) =>
-//     setTimeout(() => {
-//       console.log(`waited for ${(ms / 1000).toFixed(3)} seconds`);
-//       r();
-//     }, ms)
-//   );
+const testnetStrategy = '0x9712b6aff7d2db96097565eb8b2183b75e839130';
+const name = 'Test Endaoment';
+const symbol = 'TEST'
+
+const testnetDAI = '0xEC5dCb5Dbf4B114C9d0F65BcCAb49EC54F6A0867'
+
+const testnetRewardPool = '0x8d81807f19b97fa86eecab32f1376645fbb4d2f9'
+const testnetVault = '0xf439b695bb28c9e9865170c1b3e98f5eb4ce9b48'
 
 module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
-  const chainId = await getChainId();
+  const keeper = deployer;
 
-  await deploy("YourContract", {
-    // Learn more about args here: https://www.npmjs.com/package/hardhat-deploy#deploymentsdeploy
+  // Deploy strategy
+  await deploy("EndaomentStrategy", {
     from: deployer,
-    // args: [ "Hello", ethers.utils.parseEther("1.5") ],
+    args: [
+      testnetDAI, // Currency
+      testnetRewardPool,
+      testnetVault,
+      keeper,
+    ],
     log: true,
     waitConfirmations: 5,
   });
 
-  // Getting a previously deployed contract
-  const YourContract = await ethers.getContract("YourContract", deployer);
-  /*  await YourContract.setPurpose("Hello");
-  
-    // To take ownership of yourContract using the ownable library uncomment next line and add the 
-    // address you want to be the owner. 
-    
-    await YourContract.transferOwnership(
-      "ADDRESS_HERE"
-    );
+  const EndaomentStrategy = await ethers.getContract("EndaomentStrategy", deployer);
 
-    //const YourContract = await ethers.getContractAt('YourContract', "0xaAC799eC2d00C013f1F11c37E654e59B0429DF6A") //<-- if you want to instantiate a version of a contract at a specific address!
-  */
-
-  /*
-  //If you want to send value to an address from the deployer
-  const deployerWallet = ethers.provider.getSigner()
-  await deployerWallet.sendTransaction({
-    to: "0x34aA3F359A9D614239015126635CE7732c18fDF3",
-    value: ethers.utils.parseEther("0.001")
-  })
-  */
-
-  /*
-  //If you want to send some ETH to a contract on deploy (make your constructor payable!)
-  const yourContract = await deploy("YourContract", [], {
-  value: ethers.utils.parseEther("0.05")
+  // Deploy Deployer
+  await deploy("EndaomentDeployer", {
+    from: deployer,
+    args: [
+      EndaomentStrategy.address,
+    ],
+    log: true,
+    waitConfirmations: 5,
   });
-  */
 
-  /*
-  //If you want to link a library into your contract:
-  // reference: https://github.com/austintgriffith/scaffold-eth/blob/using-libraries-example/packages/hardhat/scripts/deploy.js#L19
-  const yourContract = await deploy("YourContract", [], {}, {
-   LibraryName: **LibraryAddress**
-  });
-  */
-
-  // Verify from the command line by running `yarn verify`
-
-  // You can also Verify your contracts with Etherscan here...
-  // You don't want to verify on localhost
-  // try {
-  //   if (chainId !== localChainId) {
-  //     await run("verify:verify", {
-  //       address: YourContract.address,
-  //       contract: "contracts/YourContract.sol:YourContract",
-  //       constructorArguments: [],
-  //     });
-  //   }
-  // } catch (error) {
-  //   console.error(error);
-  // }
 };
-module.exports.tags = ["YourContract"];
+module.exports.tags = ["EndaomentStrategy", "EndaomentDeployer"];

@@ -85,6 +85,7 @@
       "prettier/prettier": "warn"
     }
   },
+  "proxy": "https://data-seed-prebsc-2-s3.binance.org:8545",
   "scripts": {
     "build": "react-scripts build",
     "eject": "react-scripts eject",

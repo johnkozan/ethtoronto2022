@@ -73,6 +73,13 @@ module.exports = {
       
       */
     },
+    testnetBSC: {
+      url: "https://endpoints.omniatech.io/v1/bsc/testnet/0141e29d4dc94f569cbf154747783112",
+      accounts: {
+        mnemonic: mnemonic(),
+      },
+    },
+
     rinkeby: {
       url: "https://rinkeby.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad", // <---- YOUR INFURA ID! (or it won't work)
       //    url: "https://speedy-nodes-nyc.moralis.io/XXXXXXXXXXXXXXXXXXXXXXX/eth/rinkeby", // <---- YOUR MORALIS ID! (not limited to infura)
@@ -300,6 +307,15 @@ module.exports = {
       },
       {
         version: "0.6.7",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
+      },
+      {
+        version: "0.6.12",
         settings: {
           optimizer: {
             enabled: true,
