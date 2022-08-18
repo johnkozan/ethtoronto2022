@@ -13,7 +13,11 @@ import "./interfaces/common/IUniswapV2Pair.sol";
 import "./interfaces/common/IRewardPool.sol";
 import "./utils/GasThrottler.sol";
 
-contract EndaomentStrategy is Ownable, Pausable, GasThrottler {
+interface IEndaomentFactory {
+    function isVault(address) external view returns (bool);
+}
+
+contract EndaomentStrategy is Ownable, Pausable /* , GasThrottler */ {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -24,6 +28,7 @@ contract EndaomentStrategy is Ownable, Pausable, GasThrottler {
 
     // Third party contracts
     address public rewardPool;
+    address public factory;
 
     bool public harvestOnDeposit;
     uint256 public lastHarvest;
@@ -69,7 +74,8 @@ contract EndaomentStrategy is Ownable, Pausable, GasThrottler {
     }
 
     function withdraw(uint256 _amount) external {
-        require(msg.sender == vault, "!vault");
+        /*require(msg.sender == vault, "!vault");*/
+        require(IEndaomentFactory(vault).isVault(msg.sender), "!vault");
 
         uint256 wantBal = balanceOfWant();
 
@@ -83,21 +89,21 @@ contract EndaomentStrategy is Ownable, Pausable, GasThrottler {
         }
 
         if (tx.origin == owner() || paused()) {
-            IERC20(want).safeTransfer(vault, wantBal);
+            IERC20(want).safeTransfer(msg.sender, wantBal);
         } else {
             uint256 withdrawalFeeAmount = wantBal.mul(withdrawalFee).div(WITHDRAWAL_MAX);
-            IERC20(want).safeTransfer(vault, wantBal.sub(withdrawalFeeAmount));
+            IERC20(want).safeTransfer(msg.sender, wantBal.sub(withdrawalFeeAmount));
         }
     }
 
-    /*function beforeDeposit() external {*/
-        /*if (harvestOnDeposit) {*/
-            /*require(msg.sender == vault, "!vault");*/
-            /*_harvest();*/
-        /*}*/
-    /*}*/
+    function beforeDeposit() external {
+        if (harvestOnDeposit) {
+            require(msg.sender == vault, "!vault");
+            _harvest();
+        }
+    }
 
-    function harvest() external virtual gasThrottle {
+    function harvest() external virtual /* gasThrottle */ {
         _harvest();
     }
 

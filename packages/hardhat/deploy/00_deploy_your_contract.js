@@ -34,7 +34,7 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   const EndaomentStrategy = await ethers.getContract("EndaomentStrategy", deployer);
 
   // Deploy Deployer
-  await deploy("EndaomentDeployer", {
+  const deployer = await deploy("EndaomentDeployer", {
     from: deployer,
     args: [
       EndaomentStrategy.address,

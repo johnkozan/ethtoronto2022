@@ -15,7 +15,7 @@ import "./interfaces/beefy/IStrategy.sol";
  * This is the contract that receives funds and that users interface with.
  * The yield optimizing strategy itself is implemented in a separate 'Strategy.sol' contract.
  */
-contract Endaoment is ERC20, Ownable, ReentrancyGuard {
+contract EndaomentVault is ERC20, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -25,7 +25,6 @@ contract Endaoment is ERC20, Ownable, ReentrancyGuard {
     }
 
     address public beneficiary;
-    mapping (address => uint) public principalBalances;
 
     // The last proposed strategy to switch to.
     StratCandidate public stratCandidate;
@@ -36,8 +35,6 @@ contract Endaoment is ERC20, Ownable, ReentrancyGuard {
 
     event NewStratCandidate(address implementation);
     event UpgradeStrat(address implementation);
-    event NewMoonpot(address indexed oldMoonpot, address indexed newMoonpot);
-    event NewYieldSource(address indexed oldMoonpotYieldSource, address indexed newMoonpotYieldSource);
 
     /**
      * @dev Sets the value of {token} to the token that the vault will
@@ -110,12 +107,9 @@ contract Endaoment is ERC20, Ownable, ReentrancyGuard {
         /*strategy.beforeDeposit();*/
 
         want().safeTransferFrom(msg.sender, address(this), _amount);
-
-        // TODO: this causes a math underflow
-        // earn();
+        earn();
 
         _mint(msg.sender, _amount);
-        principalBalances[msg.sender] += _amount;
     }
 
     /**
@@ -151,17 +145,28 @@ contract Endaoment is ERC20, Ownable, ReentrancyGuard {
      * tokens are burned in the process.
      */
     function withdraw(uint256 _principal) public {
+        uint256 r = balanceOf(msg.sender);
         _burn(msg.sender, _principal);
 
-        if (principalBalances[msg.sender] <= _principal) {
-          want().safeTransfer(msg.sender, _principal);
-          principalBalances[msg.sender] = principalBalances[msg.sender] - _principal;
+        uint b = want().balanceOf(address(this));
+        if (b < _principal) {
+            uint _withdraw = _principal.sub(b);
+            strategy.withdraw(_withdraw);
+
+            // I'm not sure what this is doing.....
+            /*uint _after = want().balanceOf(address(this));*/
+            /*uint _diff = _after.sub(b);*/
+            /*if (_diff < _withdraw) {*/
+                /*r = b.add(_diff);*/
+            /*}*/
         }
+
+        want().safeTransfer(msg.sender, _principal);
     }
 
-    /** 
+    /**
      * @dev Sets the candidate for the new strat to use with this vault.
-     * @param _implementation The address of the candidate strategy.  
+     * @param _implementation The address of the candidate strategy.
      */
     function proposeStrat(address _implementation) public onlyOwner {
         require(address(this) == IStrategy(_implementation).vault(), "Proposal not valid for this Vault");
@@ -173,10 +178,10 @@ contract Endaoment is ERC20, Ownable, ReentrancyGuard {
         emit NewStratCandidate(_implementation);
     }
 
-    /** 
-     * @dev It switches the active strat for the strat candidate. After upgrading, the 
-     * candidate implementation is set to the 0x00 address, and proposedTime to a time 
-     * happening in +100 years for safety. 
+    /**
+     * @dev It switches the active strat for the strat candidate. After upgrading, the
+     * candidate implementation is set to the 0x00 address, and proposedTime to a time
+     * happening in +100 years for safety.
      */
 
     function upgradeStrat() public onlyOwner {
