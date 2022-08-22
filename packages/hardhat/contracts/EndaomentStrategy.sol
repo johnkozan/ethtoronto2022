@@ -74,8 +74,8 @@ contract EndaomentStrategy is Ownable, Pausable /* , GasThrottler */ {
     }
 
     function withdraw(uint256 _amount) external {
-        /*require(msg.sender == vault, "!vault");*/
-        require(IEndaomentFactory(vault).isVault(msg.sender), "!vault");
+        require(msg.sender == vault, "!vault");
+        /*require(IEndaomentFactory(vault).isVault(msg.sender), "!vault");*/
 
         uint256 wantBal = balanceOfWant();
 
@@ -135,6 +135,7 @@ contract EndaomentStrategy is Ownable, Pausable /* , GasThrottler */ {
 
     // it calculates how much 'want' the strategy has working in the farm.
     function balanceOfPool() public view returns (uint256) {
+        uint256 bal = IRewardPool(rewardPool).balanceOf(address(this));
         return IRewardPool(rewardPool).balanceOf(address(this));
     }
 

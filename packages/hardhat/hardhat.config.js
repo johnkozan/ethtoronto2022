@@ -348,6 +348,9 @@ module.exports = {
     spacing: 2,
     pretty: false,
   },
+  mocha: {
+    bail: false,
+  }
 };
 
 const DEBUG = false;

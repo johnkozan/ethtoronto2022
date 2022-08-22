@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "./interfaces/beefy/IStrategy.sol";
+import "./interfaces/beefy/IVault.sol";
 
 /**
  * @dev Implementation of a vault to deposit funds for yield optimizing.
@@ -19,50 +20,40 @@ contract EndaomentVault is ERC20, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
-    struct StratCandidate {
-        address implementation;
-        uint proposedTime;
-    }
-
     address public beneficiary;
 
-    // The last proposed strategy to switch to.
-    StratCandidate public stratCandidate;
-    // The strategy currently in use by the vault.
-    IStrategy public strategy;
-    // The minimum time it has to pass before a strat candidate can be approved.
-    uint256 public immutable approvalDelay;
-
-    event NewStratCandidate(address implementation);
-    event UpgradeStrat(address implementation);
+    IVault public sharedVault;
 
     /**
      * @dev Sets the value of {token} to the token that the vault will
      * hold as underlying value. It initializes the vault's own 'moo' token.
      * This token is minted when someone does a deposit. It is burned in order
      * to withdraw the corresponding portion of the underlying assets.
-     * @param _strategy the address of the strategy.
+     * @param _sharedVault the address of the shared vault.
      * @param _name the name of the vault token.
      * @param _symbol the symbol of the vault token.
-     * @param _approvalDelay the delay before a new strat can be approved.
      */
     constructor (
-        IStrategy _strategy,
+        IVault _sharedVault,
         string memory _name,
         string memory _symbol,
-        uint256 _approvalDelay,
+        /*uint256 _approvalDelay,*/
         address _beneficiary
     ) public ERC20(
         _name,
         _symbol
     ) {
-        strategy = _strategy;
-        approvalDelay = _approvalDelay;
+        sharedVault = _sharedVault;
+        /*approvalDelay = _approvalDelay;*/
         beneficiary = _beneficiary;
     }
 
     function want() public view returns (IERC20) {
-        return IERC20(strategy.want());
+        return IERC20(sharedVault.want());
+    }
+
+    function balanceOfWant() public view returns (uint256) {
+        return want().balanceOf(address(this));
     }
 
     /**
@@ -71,7 +62,15 @@ contract EndaomentVault is ERC20, Ownable, ReentrancyGuard {
      *  and the balance deployed in other contracts as part of the strategy.
      */
     function balance() public view returns (uint) {
-        return want().balanceOf(address(this)).add(IStrategy(strategy).balanceOf());
+        uint256 ourShares = IVault(sharedVault).balanceOf(address(this));
+        uint256 totalShares = IVault(sharedVault).totalSupply();
+        uint256 sharedBalance = IVault(sharedVault).balance();
+        uint256 ourWantBalance = sharedBalance.add(balanceOfWant());
+        if (ourShares > 0) {
+            ourWantBalance += totalShares.div(ourShares).mul(sharedBalance);
+        }
+
+        return ourWantBalance;
     }
 
     /**
@@ -85,11 +84,10 @@ contract EndaomentVault is ERC20, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Function for various UIs to display the current value of one of our yield tokens.
-     * Returns an uint256 with 18 decimals of how much underlying asset one vault share represents.
+     * @dev Returns amount of interest earned that may be withdrawn by the beneficiary
      */
-    function getPricePerFullShare() public view returns (uint256) {
-        return totalSupply() == 0 ? 1e18 : balance().mul(1e18).div(totalSupply());
+    function interestAvailable() public view returns (uint256) {
+        return balance().sub(totalSupply());
     }
 
     /**
@@ -107,19 +105,12 @@ contract EndaomentVault is ERC20, Ownable, ReentrancyGuard {
         /*strategy.beforeDeposit();*/
 
         want().safeTransferFrom(msg.sender, address(this), _amount);
-        earn();
+
+        want().approve(address(sharedVault), _amount);
+        sharedVault.deposit(_amount);
+        /*earn();*/
 
         _mint(msg.sender, _amount);
-    }
-
-    /**
-     * @dev Function to send funds into the strategy and put them to work. It's primarily called
-     * by the vault's deposit() function.
-     */
-    function earn() public {
-        uint _bal = available();
-        want().safeTransfer(address(strategy), _bal);
-        strategy.deposit();
     }
 
     /**
@@ -145,57 +136,14 @@ contract EndaomentVault is ERC20, Ownable, ReentrancyGuard {
      * tokens are burned in the process.
      */
     function withdraw(uint256 _principal) public {
-        uint256 r = balanceOf(msg.sender);
+        uint256 pc = _principal.div(balanceOf(msg.sender));
         _burn(msg.sender, _principal);
 
-        uint b = want().balanceOf(address(this));
-        if (b < _principal) {
-            uint _withdraw = _principal.sub(b);
-            strategy.withdraw(_withdraw);
-
-            // I'm not sure what this is doing.....
-            /*uint _after = want().balanceOf(address(this));*/
-            /*uint _diff = _after.sub(b);*/
-            /*if (_diff < _withdraw) {*/
-                /*r = b.add(_diff);*/
-            /*}*/
-        }
+        // shared vault shares to redeem
+        uint256 shares = sharedVault.balanceOf(address(this)).mul(pc);
+        sharedVault.withdraw(shares);
 
         want().safeTransfer(msg.sender, _principal);
-    }
-
-    /**
-     * @dev Sets the candidate for the new strat to use with this vault.
-     * @param _implementation The address of the candidate strategy.
-     */
-    function proposeStrat(address _implementation) public onlyOwner {
-        require(address(this) == IStrategy(_implementation).vault(), "Proposal not valid for this Vault");
-        stratCandidate = StratCandidate({
-            implementation: _implementation,
-            proposedTime: block.timestamp
-         });
-
-        emit NewStratCandidate(_implementation);
-    }
-
-    /**
-     * @dev It switches the active strat for the strat candidate. After upgrading, the
-     * candidate implementation is set to the 0x00 address, and proposedTime to a time
-     * happening in +100 years for safety.
-     */
-
-    function upgradeStrat() public onlyOwner {
-        require(stratCandidate.implementation != address(0), "There is no candidate");
-        require(stratCandidate.proposedTime.add(approvalDelay) < block.timestamp, "Delay has not passed");
-
-        emit UpgradeStrat(stratCandidate.implementation);
-
-        strategy.retireStrat();
-        strategy = IStrategy(stratCandidate.implementation);
-        stratCandidate.implementation = address(0);
-        stratCandidate.proposedTime = 5000000000;
-
-        earn();
     }
 
     /**

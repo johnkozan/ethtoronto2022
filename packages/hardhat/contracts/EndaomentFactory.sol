@@ -5,6 +5,7 @@ pragma solidity ^0.6.12;
 import "./EndaomentVault.sol";
 import "./EndaomentStrategy.sol";
 import "./interfaces/beefy/IStrategy.sol";
+import "./interfaces/beefy/IVault.sol";
 
 /**
  * @dev endaoment vault deployer
@@ -12,20 +13,20 @@ import "./interfaces/beefy/IStrategy.sol";
 contract EndaomentFactory {
     string name = 'beefy endaoment vault';
     string symbol = 'BEV';
-    address public strategy;
+    IVault public sharedVault;
     mapping (address => bool) vaults;
 
     event NewEndaoment(address endaoment);
 
-    /*constructor(*/
-        /*address _strategy*/
-    /*) public {*/
+    constructor(
+        IVault _sharedVault
+    ) public {
+        sharedVault = _sharedVault;
+    }
+
+    /*function setStrategy(address _strategy)  external {  [> TODO: OnlyOwner <]*/
         /*strategy = _strategy;*/
     /*}*/
-
-    function setStrategy(address _strategy)  external {  /* TODO: OnlyOwner */
-        strategy = _strategy;
-    }
 
     /*
      * @dev Returns true if the given address is a vault
@@ -41,12 +42,11 @@ contract EndaomentFactory {
      * @param _beneficiary the address of the strategy.
      */
     function deploy(address _beneficiary) external {
-        require(strategy != address(0), "no strat");
+        require(address(sharedVault) != address(0), "!vault");
         EndaomentVault newEndaoment = new EndaomentVault(
-            IStrategy(strategy),
+            IVault(sharedVault),
             name,
             symbol,
-            5000,
             _beneficiary
         );
         vaults[address(newEndaoment)] = true;

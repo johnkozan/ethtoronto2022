@@ -28,6 +28,7 @@ contract MockRewardPool {
 
     function stake(uint256 amount) external {
         IERC20(want).safeTransferFrom(msg.sender, address(this), amount);
+        balances[msg.sender] += amount;
     }
 
     function withdraw(uint256 amount) external {
@@ -48,7 +49,8 @@ contract MockRewardPool {
     }
 
     // Accrue some interest
-    function mockInterest(uint256 _amount) external {
+    function mockInterestTo(address _address, uint256 _amount) external {
         IMockERC20(want).mintTo(address(this), _amount);
+        balances[_address] += _amount;
     }
 }
