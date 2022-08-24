@@ -63,14 +63,9 @@ contract EndaomentVault is ERC20, Ownable, ReentrancyGuard {
      */
     function balance() public view returns (uint) {
         uint256 ourShares = IVault(sharedVault).balanceOf(address(this));
-        uint256 totalShares = IVault(sharedVault).totalSupply();
-        uint256 sharedBalance = IVault(sharedVault).balance();
-        uint256 ourWantBalance = sharedBalance.add(balanceOfWant());
-        if (ourShares > 0) {
-            ourWantBalance += totalShares.div(ourShares).mul(sharedBalance);
-        }
+        uint256 pricePerFullShare = IVault(sharedVault).getPricePerFullShare();
 
-        return ourWantBalance;
+        return ourShares.mul(pricePerFullShare).div(1e18).add(balanceOfWant());
     }
 
     /**
@@ -126,8 +121,23 @@ contract EndaomentVault is ERC20, Ownable, ReentrancyGuard {
      * the strategy, less the princiapal amount in the vault represented by the totalSupply
      */
     function withdrawInterest() external {
-        uint _amount = balance().sub(totalSupply());
-        want().safeTransferFrom(address(this), beneficiary, _amount);
+        uint256 sharesAvailable = sharedVault.balanceOf(address(this));
+        if (sharesAvailable > 0) {
+            // Get interst amount that can be withdrawn
+            uint256 interestAmount = interestAvailable();
+            uint256 wantNeeded = interestAmount.sub(want().balanceOf(address(this)));
+            // calculated amount of shared vault shares required to get want needed
+
+            uint256 pricePerFullShare = sharedVault.getPricePerFullShare();
+
+            // There is a rounding issue here.  actual amount received from shared vault
+            // will be slightly different from amount shown in interestAvailable()
+            uint256 sharesRequired = wantNeeded.mul(1e18).div(pricePerFullShare);
+            sharedVault.withdraw(sharesRequired);
+            want().safeTransfer(beneficiary, want().balanceOf(address(this)));
+        }
+
+        want().safeTransfer(beneficiary, want().balanceOf(address(this)));
     }
 
     /**

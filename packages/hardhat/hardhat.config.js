@@ -349,7 +349,7 @@ module.exports = {
     pretty: false,
   },
   mocha: {
-    bail: false,
+    bail: true,
   }
 };
 

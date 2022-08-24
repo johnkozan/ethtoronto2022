@@ -11,12 +11,11 @@ import "./interfaces/beefy/IVault.sol";
  * @dev endaoment vault deployer
  */
 contract EndaomentFactory {
-    string name = 'beefy endaoment vault';
     string symbol = 'BEV';
     IVault public sharedVault;
     mapping (address => bool) vaults;
 
-    event NewEndaoment(address endaoment);
+    event NewEndaoment(address indexed endaoment);
 
     constructor(
         IVault _sharedVault
@@ -41,7 +40,7 @@ contract EndaomentFactory {
      * @dev Deploy a new endaoment vault
      * @param _beneficiary the address of the strategy.
      */
-    function deploy(address _beneficiary) external {
+    function deploy(address _beneficiary, string memory name) external {
         require(address(sharedVault) != address(0), "!vault");
         EndaomentVault newEndaoment = new EndaomentVault(
             IVault(sharedVault),

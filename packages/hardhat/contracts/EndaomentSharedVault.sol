@@ -140,6 +140,8 @@ contract EndaomentSharedVault is ERC20, Ownable, ReentrancyGuard {
      * tokens are burned in the process.
      */
     function withdraw(uint256 _shares) public {
+        require(totalSupply() > 0, "!shares");
+
         uint256 r = (balance().mul(_shares)).div(totalSupply());
         _burn(msg.sender, _shares);
 

@@ -1,41 +1,33 @@
-import { Button, Col, Menu, Row } from "antd";
+import { Spin } from "antd";
 import "antd/dist/antd.css";
 import {
-  useBalance,
   useContractLoader,
-  useContractReader,
   useGasPrice,
-  useOnBlock,
   useUserProviderAndSigner,
 } from "eth-hooks";
-import { useExchangeEthPrice } from "eth-hooks/dapps/dex";
 import React, { useCallback, useEffect, useState } from "react";
 import { Link, Route, Switch, useLocation } from "react-router-dom";
 import "./App.css";
 import {
   Account,
-  Contract,
-  Faucet,
-  GasGauge,
   Header,
-  Ramp,
   ThemeSwitch,
   NetworkDisplay,
   FaucetHint,
   NetworkSwitch,
 } from "./components";
-import { NETWORKS, ALCHEMY_KEY } from "./constants";
+import { NETWORKS } from "./constants";
 import externalContracts from "./contracts/external_contracts";
 // contracts
 import deployedContracts from "./contracts/hardhat_contracts.json";
 import { Transactor, Web3ModalSetup } from "./helpers";
-import { Endaoment, Deployer } from "./views";
+import { Home, Endaoment, Deployer, Testing } from "./views";
 import { useStaticJsonRPC } from "./hooks";
 
 const { ethers } = require("ethers");
 
 /// 📡 What chain are your contracts deployed to?
-const initialNetwork = NETWORKS.bscTestnet; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
+const initialNetwork = NETWORKS.localhost; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
 
 // 😬 Sorry for all the console logging
 const DEBUG = true;
@@ -45,13 +37,6 @@ const USE_NETWORK_SELECTOR = false;
 
 const web3Modal = Web3ModalSetup();
 
-// 🛰 providers
-//const providers = [
-  //"https://eth-mainnet.gateway.pokt.network/v1/lb/611156b4a585a20035148406",
-  //`https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_KEY}`,
-  //"https://rpc.scaffoldeth.io:48544",
-//];
-
 function App(props) {
   // specify all the chains your app is available on. Eg: ['localhost', 'mainnet', ...otherNetworks ]
   // reference './constants.js' for other networks
@@ -60,7 +45,6 @@ function App(props) {
   const [injectedProvider, setInjectedProvider] = useState();
   const [address, setAddress] = useState();
   const [selectedNetwork, setSelectedNetwork] = useState(networkOptions[0]);
-  const location = useLocation();
 
   const targetNetwork = NETWORKS[selectedNetwork];
 
@@ -71,12 +55,8 @@ function App(props) {
   const localProvider = useStaticJsonRPC([
     process.env.REACT_APP_PROVIDER ? process.env.REACT_APP_PROVIDER : targetNetwork.rpcUrl,
   ]);
-  //const mainnetProvider = useStaticJsonRPC(providers);
 
   if (DEBUG) console.log(`Using ${selectedNetwork} network`);
-
-  // 🛰 providers
-  if (DEBUG) console.log("📡 Connecting to Mainnet Ethereum");
 
   const logoutOfWeb3Modal = async () => {
     await web3Modal.clearCachedProvider();
@@ -112,21 +92,11 @@ function App(props) {
   const selectedChainId =
     userSigner && userSigner.provider && userSigner.provider._network && userSigner.provider._network.chainId;
 
-  // For more hooks, check out 🔗eth-hooks at: https://www.npmjs.com/package/eth-hooks
-
   // The transactor wraps transactions and provides notificiations
   const tx = Transactor(userSigner, gasPrice);
 
-  // 🏗 scaffold-eth is full of handy hooks like this one to get your balance:
-  const yourLocalBalance = useBalance(localProvider, address);
-
-  // Just plug in different 🛰 providers to get your balance on different chains:
-  //const yourMainnetBalance = useBalance(mainnetProvider, address);
-
   // const contractConfig = useContractConfig();
-
   const contractConfig = { deployedContracts: deployedContracts || {}, externalContracts: externalContracts || {} };
-  console.log(contractConfig);
 
   // Load in your local 📝 contract and read a value from it:
   const readContracts = useContractLoader(localProvider, contractConfig);
@@ -134,17 +104,11 @@ function App(props) {
   // If you want to make 🔐 write transactions to your contracts, use the userSigner:
   const writeContracts = useContractLoader(userSigner, contractConfig, localChainId);
 
-  // EXTERNAL CONTRACT EXAMPLE:
-  //
-  // If you want to bring in the mainnet DAI contract it would look like:
-  //const mainnetContracts = useContractLoader(mainnetProvider, contractConfig);
-
   useEffect(() => {
     if (
       DEBUG &&
       address &&
       selectedChainId &&
-      yourLocalBalance &&
       readContracts &&
       writeContracts
     ) {
@@ -152,14 +116,12 @@ function App(props) {
       console.log("localChainId", localChainId);
       console.log("selected address:", address);
       console.log("selectedChainId:", selectedChainId);
-      console.log("yourLocalBalance", yourLocalBalance ? ethers.utils.formatEther(yourLocalBalance) : "...");
       console.log("readContracts", readContracts);
       console.log("writeContracts", writeContracts);
     }
   }, [
     address,
     selectedChainId,
-    yourLocalBalance,
     readContracts,
     writeContracts,
     localChainId,
@@ -195,9 +157,8 @@ function App(props) {
 
   const faucetAvailable = localProvider && localProvider.connection && targetNetwork.name.indexOf("local") !== -1;
 
-
-  if (Object.keys(readContracts).length == 0) {
-    return 'Loading...';
+  if (userSigner && !address) {
+    return <Spin />;
   }
 
   return (
@@ -205,6 +166,9 @@ function App(props) {
       <Header>
         <div style={{ position: "relative", display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", flex: 1 }}>
+              <div style={{ marginRight: 20 }}>
+                <Link to="/testing">testing</Link>
+              </div>
             {USE_NETWORK_SELECTOR && (
               <div style={{ marginRight: 20 }}>
                 <NetworkSwitch
@@ -227,9 +191,7 @@ function App(props) {
           </div>
         </div>
       </Header>
-      {yourLocalBalance.lte(ethers.BigNumber.from("0")) && (
         <FaucetHint localProvider={localProvider} targetNetwork={targetNetwork} address={address} />
-      )}
       <NetworkDisplay
         NETWORKCHECK={NETWORKCHECK}
         localChainId={localChainId}
@@ -241,10 +203,41 @@ function App(props) {
 
       <Switch>
         <Route exact path="/">
-          <Deployer yourLocalBalance={yourLocalBalance} address={address} readContracts={readContracts} writeContracts={writeContracts} tx={tx} localProvider={localProvider}/>
+          <Home />
         </Route>
-        <Route path="/:address">
-          <Endaoment yourLocalBalance={yourLocalBalance} address={address} readContracts={readContracts} writeContracts={writeContracts} tx={tx} />
+        <Route exact path="/new">
+          <Deployer
+            address={address}
+            readContracts={readContracts}
+            writeContracts={writeContracts}
+            tx={tx}
+            localProvider={localProvider}
+          />
+        </Route>
+
+        <Route exact path="/testing">
+          <Testing
+            address={address}
+            readContracts={readContracts}
+            writeContracts={writeContracts}
+            tx={tx}
+            localProvider={localProvider}
+          />
+        </Route>
+
+        <Route path="/:vaultAddress">
+          <Endaoment
+            address={address}
+            readContracts={readContracts}
+            writeContracts={writeContracts}
+            tx={tx}
+            localProvider={localProvider}
+            contractConfig={contractConfig}
+            localChainId={localChainId}
+            userSigner={userSigner}
+            web3Modal={web3Modal}
+            loadWeb3Modal={loadWeb3Modal}
+          />
         </Route>
 
       </Switch>

@@ -59,7 +59,8 @@ describe("Endaoment", function () {
     console.log(`${msg} Balances:
       rewardPool: ${ethers.utils.formatEther(await mockDAI.balanceOf(rewardPool.address))}
       strategy  : ${ethers.utils.formatEther(await mockDAI.balanceOf(strategy.address))}
-      vault     : ${ethers.utils.formatEther(await mockDAI.balanceOf(createdVault.address))}
+      uservault : ${ethers.utils.formatEther(await mockDAI.balanceOf(createdVault.address))}
+      shrdvault : ${ethers.utils.formatEther(await mockDAI.balanceOf(createdVault.address))}
       factory   : ${ethers.utils.formatEther(await mockDAI.balanceOf(factory.address))}
       user     : ${ethers.utils.formatEther(await mockDAI.balanceOf(addresses.user.address))}
       `);
@@ -94,21 +95,24 @@ describe("Endaoment", function () {
       const EndaomentFactory = await ethers.getContractFactory("EndaomentFactory");
       factory = await EndaomentFactory.deploy(predictedAddresses.vault);
 
-      // Register strategy with factory
-      //await factory.setStrategy(strategy.address);
-
       expect(await factory.sharedVault()).to.equal(predictedAddresses.vault);
     });
 
 
     it("should create new vaults", async function () {
-      const deployTx = await factory.connect(addresses.beneficiary).deploy(addresses.beneficiary.address);
+      const name = 'Test Vault';
+      const deployTx = await factory.connect(addresses.beneficiary)
+        .deploy(addresses.beneficiary.address, name);
       const result = await deployTx.wait();
 
       expect(deployTx).to.emit(factory, "NewEndaoment");
-      createdVault = await (await ethers.getContractFactory('EndaomentVault')).attach(
-        result.events.find(e => e.event === 'NewEndaoment').args[0]
-      );
+
+      const newVaultEvent = result.events.find(e => e.event == 'NewEndaoment');
+      const newVaultAddress = newVaultEvent.args.endaoment;
+      expect(newVaultAddress.substring(0,2)).to.equal('0x');  // Should emit address of new vault
+      expect(newVaultAddress.length).to.equal(42);
+      createdVault = await (await ethers.getContractFactory('EndaomentVault')).attach(newVaultAddress);
+      expect(await createdVault.name()).to.equal(name);
     });
 
     it("should determine if an address is a vault", async () => {
@@ -119,6 +123,8 @@ describe("Endaoment", function () {
   });
 
   describe("EndaomentVault", function () {
+
+    // it should be owned by the beneficiary
 
     it("should take deposits", async () => {
       // Give user some DAI
@@ -134,6 +140,9 @@ describe("Endaoment", function () {
       expect(await mockDAI.balanceOf(addresses.user.address)).to.equal(ethers.utils.parseEther('9000'));
       expect(await mockDAI.balanceOf(rewardPool.address)).to.equal(ethers.utils.parseEther('1000'));
       expect(await sharedVault.totalSupply()).to.equal(ethers.utils.parseEther('1000'));
+      expect(await createdVault.totalSupply()).to.equal(ethers.utils.parseEther('1000'));
+      expect(await createdVault.balance()).to.equal(ethers.utils.parseEther('1000'));
+      expect(await createdVault.balanceOf(addresses.user.address)).to.equal(ethers.utils.parseEther('1000'));
     });
 
     it("should not allow interest to be withdrawn", async () => {
@@ -161,6 +170,29 @@ describe("Endaoment", function () {
       const interestAvailable = await createdVault.interestAvailable();
       expect(interestAvailable).to.equal(ethers.utils.parseEther('0.246913578'));
     });
+
+    it("should allow the interest to be withdrawn to the beneficiary", async () => {
+      await createdVault.connect(addresses.beneficiary).withdrawInterest();
+      expect(await mockDAI.balanceOf(addresses.beneficiary.address)).to.equal(ethers.utils.parseEther('0.246913578'));
+    });
+
+    it("should allow interest to be withdrawn to beneficiary when contract has deposits", async () => {
+      // user deposits another 1000
+      await mockDAI.connect(addresses.user).approve(createdVault.address, ethers.utils.parseEther('1000'));
+      await createdVault.connect(addresses.user).deposit(ethers.utils.parseEther('1000'));
+      // accrue interest
+      await rewardPool.mockInterestTo(strategy.address, ethers.utils.parseEther('0.123456789'));
+
+      await createdVault.connect(addresses.beneficiary).withdrawInterest();
+
+      // Due to rounding issue:  Actual amount received from shared vault will differ
+      // slightly from amount shown in UI with interestAvailable()
+      // should be: 0.370370367
+      // actual:    0.370370366999999999
+      expect(await mockDAI.balanceOf(addresses.beneficiary.address)).to.equal(ethers.utils.parseEther('0.370370366999999999'));
+    });
+
+    // it should not allower a regular user to withraw interest to beneficiary
 
   });
 });

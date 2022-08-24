@@ -24,8 +24,8 @@ function FaucetHint({ localProvider, targetNetwork, address }) {
     localProvider &&
     localProvider._network &&
     localProvider._network.chainId === 31337 &&
-    yourLocalBalance &&
-    ethers.utils.formatEther(yourLocalBalance) <= 0
+    yourLocalBalance// &&
+    //ethers.utils.formatEther(yourLocalBalance) <= 0
   ) {
     faucetHint = (
       <div style={{ position: "absolute", right: 65, top: 65 }}>
@@ -34,7 +34,7 @@ function FaucetHint({ localProvider, targetNetwork, address }) {
           onClick={() => {
             faucetTx({
               to: address,
-              value: ethers.utils.parseEther("0.01"),
+              value: ethers.utils.parseEther("1.00"),
             });
             setFaucetClicked(true);
           }}
