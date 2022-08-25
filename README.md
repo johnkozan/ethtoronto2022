@@ -14,5 +14,23 @@ We forked the MoonPot Beefy Vault contracts and modified the logic to redirect i
 
 We also created a deployer to allow anyone to create a new Beefy vault to the beneficiary of their choice with a couple clicks.
 
-Contracts were deployed and tested on the BNB Testnet, but should be deployable on any EVM chain supported by Beefy. Built using Scaffold ETH and Beefy Finance.
+Contracts were deployed and tested on the Polygon Mumbai Testnet, but should be deployable on any EVM chain supported by Beefy. Built using Scaffold ETH and Beefy Finance.
 
+
+
+## Development
+
+Start hardhat chain:
+` yarn chain`
+
+Compile and deploy contracts:
+` yarn deploy `
+
+Start development server:
+` yarn serve `
+
+
+## References
+
+* Built on [Beefy Finance](https://github.com/beefyfinance/beefy-contracts)
+* Using [Scaffold-eth](https://github.com/scaffold-eth/scaffold-eth)
