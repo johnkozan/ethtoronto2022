@@ -11,6 +11,7 @@ packages/hardhat/deployments
 packages/react-app/src/contracts/*
 !packages/react-app/src/contracts/external_contracts.js
 !packages/react-app/src/contracts/mumbai.json
+!packages/react-app/src/contracts/ABI
 packages/hardhat/cache*
 packages/**/data
 !packages/react-app/src/contracts/contracts.js
