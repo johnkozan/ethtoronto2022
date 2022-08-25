@@ -22,6 +22,8 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
 
   // Deploy shared vault
   //const EndaomentSharedVault = await ethers.getContractFactory("EndaomentSharedVault");
+  /// TODO: SharedVault and Strategy deploys will repeat everytime this script is run
+  // because of the predictedAddresses, which will change everytime.
   const sharedVault = await deploy("EndaomentSharedVault", {
     from: deployer,
     args: [

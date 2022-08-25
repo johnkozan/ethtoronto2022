@@ -21,7 +21,9 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   const mockERC20 = await ethers.getContract("MockERC20", deployer);
 
   // Give me some tokens
-  await mockERC20.mintTo(myAddress, ethers.utils.parseEther('10000'));
+  //if ((await mockERC20.balanceOf(myAddress)).lt(ethers.utils.parseEther('1000'))) {
+    //await mockERC20.mintTo(myAddress, ethers.utils.parseEther('10000'));
+  //}
 
   // Deploy mock reward pool
   await deploy("MockRewardPool", {

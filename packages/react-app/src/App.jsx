@@ -19,7 +19,8 @@ import {
 import { NETWORKS } from "./constants";
 import externalContracts from "./contracts/external_contracts";
 // contracts
-import deployedContracts from "./contracts/hardhat_contracts.json";
+//import deployedContracts from "./contracts/hardhat_contracts.json";
+import deployedContracts from "./contracts/mumbai.json";
 import { Transactor, Web3ModalSetup } from "./helpers";
 import { Home, Endaoment, Deployer, Testing } from "./views";
 import { useStaticJsonRPC } from "./hooks";
@@ -27,7 +28,7 @@ import { useStaticJsonRPC } from "./hooks";
 const { ethers } = require("ethers");
 
 /// 📡 What chain are your contracts deployed to?
-const initialNetwork = NETWORKS.localhost; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
+const initialNetwork = NETWORKS.mumbai; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
 
 // 😬 Sorry for all the console logging
 const DEBUG = true;
