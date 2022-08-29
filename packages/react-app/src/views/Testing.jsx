@@ -1,18 +1,15 @@
-import { useContractReader, useContractLoader } from "eth-hooks";
+import { useContractReader } from "eth-hooks";
 import { ethers } from "ethers";
-import { Button, Card, Col, Divider, Input, Progress, Row, Slider, Spin, Switch } from "antd";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useParams, Link } from "react-router-dom";
-import { Account, Address } from "../components";
-
-import VAULTABI from '../contracts/ABI/EndaomentVault.json'
+import { Faucet } from "../components";
 
 function Testing({ readContracts, address, tx, writeContracts, localProvider, localChainId, userSigner, loadWeb3Modal, web3Modal }) {
 
-  const myCurrencyBalance = useContractReader(readContracts, 'MockERC20', 'balanceOf', [ address ])
+  const myCurrencyBalance = useContractReader(readContracts, "MockERC20", "balanceOf", [ address ])
 
   const mintMockDai = async () => {
-    tx(writeContracts.MockERC20.mintTo(address, ethers.utils.parseEther('10000')));
+    tx(writeContracts.MockERC20.mintTo(address, ethers.utils.parseEther("10000")));
   }
 
   const mockInterest = async () => {
@@ -20,26 +17,40 @@ function Testing({ readContracts, address, tx, writeContracts, localProvider, lo
   };
 
   return (
-    <div>
-      <div style={{ border: "1px solid #cccccc", padding: 16, width: 600, margin: "auto", marginTop: 64 }}>
-        <h1>Testing</h1>
 
-        My DAI Balance: { myCurrencyBalance ? ethers.utils.formatEther(myCurrencyBalance) : '...' }
 
-        <br />
+    <div className="md:flex md:items-center md:justify-between">
+      <div className="flex-1 min-w-0">
+        <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:tracking-tight sm:truncate">
+          Functions for Testing
+        </h2>
 
-        <Button onClick={mintMockDai}>
-          Give me DAI
-        </Button>
+        My DAI Balance: { myCurrencyBalance ? ethers.utils.formatEther(myCurrencyBalance) : "..." }
+        <button
+          type="button"
+          className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          onClick={mintMockDai}
+        >
+          Give me MockDAI
+        </button>
 
-        <Divider />
+        <button
+          type="button"
+          className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          onClick={mockInterest}
+        >
+          Accrue Interest
+        </button>
 
-        <Button onClick={mockInterest}>
-          Accrue interest
-        </Button>
+        <Faucet
+          localProvider={localProvider}
+          ensProvider={localProvider}
+          placeholder={"Send local faucet"}
+        />
 
       </div>
     </div>
+
   );
 }
 

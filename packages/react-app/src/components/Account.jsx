@@ -1,12 +1,12 @@
-import { Button } from "antd";
-import React from "react";
-import { useThemeSwitcher } from "react-css-theme-switcher";
+import React, { Fragment } from "react";
 
+import { Menu, Transition } from "@headlessui/react";
+
+import { classNames, blockExplorerLink } from "../helpers";
 import Address from "./Address";
 import Balance from "./Balance";
-import Wallet from "./Wallet";
 
-/** 
+/**
   ~ What it does? ~
 
   Displays an Address, Balance, and Wallet as one Account component,
@@ -15,6 +15,7 @@ import Wallet from "./Wallet";
   ~ How can I use? ~
 
   <Account
+    useBurner={boolean}
     address={address}
     localProvider={localProvider}
     userProvider={userProvider}
@@ -24,7 +25,6 @@ import Wallet from "./Wallet";
     loadWeb3Modal={loadWeb3Modal}
     logoutOfWeb3Modal={logoutOfWeb3Modal}
     blockExplorer={blockExplorer}
-    isContract={boolean}
   />
 
   ~ Features ~
@@ -39,58 +39,81 @@ import Wallet from "./Wallet";
               to be able to log in/log out to/from existing accounts
   - Provide blockExplorer={blockExplorer}, click on address and get the link
               (ex. by default "https://etherscan.io/" or for xdai "https://blockscout.com/poa/xdai/")
-**/
+ **/
 
 export default function Account({
+  useBurner,
   address,
   userSigner,
   localProvider,
   mainnetProvider,
   price,
-  minimized,
   web3Modal,
   loadWeb3Modal,
   logoutOfWeb3Modal,
   blockExplorer,
-  isContract,
 }) {
-  const { currentTheme } = useThemeSwitcher();
+  const etherscanLink = blockExplorerLink(address, blockExplorer);
 
-  let accountButtonInfo;
+  const accountNavigation = [
+    { name: 'View on Explorer', action: () => window.open(etherscanLink, '_blank').focus() },
+  ];
+
   if (web3Modal?.cachedProvider) {
-    accountButtonInfo = { name: "Logout", action: logoutOfWeb3Modal };
+    accountNavigation.push({ name: 'Logout', action: logoutOfWeb3Modal });
+    return (
+      <div className="flex items-center">
+        <Menu as="div" className="ml-3 relative">
+          <div className="flex items-center inline-flex items-center pl-3.5 border border-transparent select-none text-sm text-gray-900 leading-4 font-normal rounded-full shadow-sm bg-slate-200 dark:bg-neutral-900 dark:text-white">
+            <Balance address={address} provider={localProvider} textSize='text-lg' />
+            <Menu.Button
+              className="inline-flex items-center px-3.5 py-1.5 border border-transparent text-sm leading-4 font-medium rounded-full shadow-sm bg-slate-100 hover:border-slate-400 focus:outline-none focus:border-slate-400 dark:bg-neutral-800 dark:hover:border-gray-700 dark:focus:border-gray-700"
+            >
+              <span className="sr-only">Open user menu</span>
+              <Address address={address} disableAddressLink={true} ensProvider={mainnetProvider} blockExplorer={blockExplorer} />
+            </Menu.Button>
+          </div>
+          <Transition
+            as={Fragment}
+            enter="transition ease-out duration-100"
+            enterFrom="transform opacity-0 scale-95"
+            enterTo="transform opacity-100 scale-100"
+            leave="transition ease-in duration-75"
+            leaveFrom="transform opacity-100 scale-100"
+            leaveTo="transform opacity-0 scale-95"
+          >
+            <Menu.Items className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-900 ring-1 ring-black ring-opacity-5 focus:outline-none">
+              {accountNavigation.map((item) => (
+                <Menu.Item key={item.name}>
+                  {({ active }) => (
+                    <span
+                      onClick={item.action}
+                      className={classNames(
+                        active ? 'bg-gray-100' : '',
+                        'cursor-pointer block px-4 py-2 text-sm text-gray-700 dark:text-white dark:hover:bg-gray-800'
+                      )}
+                    >
+                      {item.name}
+                    </span>
+                  )}
+                </Menu.Item>
+              ))}
+            </Menu.Items>
+          </Transition>
+        </Menu>
+      </div>
+    );
   } else {
-    accountButtonInfo = { name: "Connect", action: loadWeb3Modal };
+    return (
+      <div className="flex items-center">
+        <button
+          className="bg-transparent hover:bg-blue-500 text-blue-700 hover:text-white py-2 px-4 border hover:border-transparent rounded-full"
+          onClick={loadWeb3Modal}
+        >
+          Connect Wallet
+        </button>
+      </div>
+    );
   }
 
-  const display = !minimized && (
-    <span>
-      {address && (
-        <Address address={address} ensProvider={mainnetProvider} blockExplorer={blockExplorer} fontSize={20} />
-      )}
-      <Balance address={address} provider={localProvider} price={price} size={20} />
-      {!isContract && (
-        <Wallet
-          address={address}
-          provider={localProvider}
-          signer={userSigner}
-          ensProvider={mainnetProvider}
-          color={currentTheme === "light" ? "#1890ff" : "#2caad9"}
-          size={22}
-          padding={"0px"}
-        />
-      )}
-    </span>
-  );
-
-  return (
-    <div style={{ display: "flex" }}>
-      {display}
-      {web3Modal && (
-        <Button style={{ marginLeft: 8 }} shape="round" onClick={accountButtonInfo.action}>
-          {accountButtonInfo.name}
-        </Button>
-      )}
-    </div>
-  );
 }
