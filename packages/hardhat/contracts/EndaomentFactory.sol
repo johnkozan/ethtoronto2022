@@ -13,7 +13,10 @@ import "./interfaces/beefy/IVault.sol";
 contract EndaomentFactory {
     string symbol = 'BEV';
     IVault public sharedVault;
+
     mapping (address => bool) vaults;
+    uint256 public vaultCount;
+    mapping (uint256 => address) public vaultIndex;
 
     event NewEndaoment(address indexed endaoment);
 
@@ -49,6 +52,8 @@ contract EndaomentFactory {
             _beneficiary
         );
         vaults[address(newEndaoment)] = true;
+        vaultIndex[vaultCount] = address(newEndaoment);
+        vaultCount += 1;
         emit NewEndaoment(address(newEndaoment));
     }
 

@@ -120,6 +120,14 @@ describe("Endaoment", function () {
       expect(await factory.isVault('0xcd3B766CCDd6AE721141F452C550Ca635964ce71')).to.equal(false);
     });
 
+    it("should keep track of number of vaults", async () => {
+      expect(await factory.vaultCount()).to.equal(1);
+    });
+
+    it("should return vault address for index number", async () => {
+      expect(await factory.vaultIndex(0)).to.equal(createdVault.address);
+    });
+
   });
 
   describe("EndaomentVault", function () {
